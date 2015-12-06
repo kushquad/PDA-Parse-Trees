@@ -28,6 +28,23 @@ int isStackEmpty()
 	{return stacktop==-1;}
 // End of stack implementation
 
+// Stack implementation
+int treestack[10];
+int treestacktop = -1;
+
+void pushTreeStack(int c)
+	{treestack[++treestacktop] = c;}
+
+void popTreeStack()
+	{treestacktop--;}
+
+int topTreeStack()
+	{return treestack[treestacktop];}
+
+int isTreeStackEmpty()
+	{return treestacktop==-1;}
+// End of stack implementation
+
 // Rule and ruleset definition
 struct rule
 {
@@ -36,6 +53,7 @@ struct rule
 	char input;
 	char newstate;
 	char newstacktop[5];
+	char label[3][10];
 };
 
 #define RULETABLESIZE 7
@@ -56,17 +74,16 @@ char* revstring(char *string)
 	return string;
 }
 
+int active = 0;
 int processInput(ruleset RS, struct PDA *p, char input)
 {
 	//printf("ENTER:%c %c %s\n",input,(*p).currentstate,topStack(1));
-	int i,l,j;
+	int i,l,j,parent;
 	for(i=0; i<RULETABLESIZE; i++)
 	{
 		if(RS[i].state==(*p).currentstate && RS[i].input==input)
 		{
-			//printf("%d HELLO",i);
 			l = (RS[i].stacktop[0] == 'e') ? (0) : (strlen(RS[i].stacktop));
-			//printf("%d %s\n",l,RS[i].stacktop);
 			if(strcmp(RS[i].stacktop,topStack(l))==0 || RS[i].stacktop[0]=='e')
 			{
 				(*p).currentstate = RS[i].newstate;
@@ -76,8 +93,34 @@ int processInput(ruleset RS, struct PDA *p, char input)
 				for(j=l-1; j>=0; j--)
 					pushStack(RS[i].newstacktop[j]);
 				
-				//printf("Rule %d fired\n",i);
-				//printf("%d %s\n",stacktop+1, topStack(l));
+				if(i==0)
+				{
+					FILE* fp = fopen("notes.txt","a");
+					fprintf(fp,"%s ",RS[i].label[0]);
+					fclose(fp);
+					pushTreeStack(active++);
+				}
+				else
+				{
+					parent = topTreeStack();
+					popTreeStack();
+					active += l;
+					for(j=l;j>=0;j--)
+					{
+						if(RS[i].label[j][0]=='<')
+							pushTreeStack(active);
+						active--;
+					}
+					
+					for(j=0;j<=l;j++)
+					{
+						FILE* fp = fopen("notes.txt","a");
+						fprintf(fp,"%d %s ",parent,RS[i].label[j]);
+						fclose(fp);
+						active++;
+					}
+					active++;
+				}
 				return i;
 			}
 		}
@@ -89,7 +132,6 @@ int isAccepted(struct PDA p)
 {
 	int i;
 	// Check if stack is empty
-	//printf("%d %c %c\n",stacktop,p.finalstates[0],p.currentstate);
 	if(stacktop==-1)
 	{
 		for(i=0; i<strlen(p.finalstates); i++)
@@ -108,42 +150,55 @@ void fillRules(ruleset RS)
 	RS[0].input = 'e';
 	RS[0].newstate = 'q';
 	RS[0].newstacktop[0] = 'S', RS[0].newstacktop[1] = '\0';
+	strcpy(RS[0].label[0],"S");
 	
 	RS[1].state = 'q';
 	RS[1].stacktop[0] = 'S'; RS[1].stacktop[1] = '\0';
 	RS[1].input = 'a';
 	RS[1].newstate = 'q';
 	RS[1].newstacktop[0] = 'A', RS[1].newstacktop[1] = 'B', RS[1].newstacktop[2] = '\0';
+	strcpy(RS[1].label[0],"a");
+	strcpy(RS[1].label[1],"<A>");
+	strcpy(RS[1].label[2],"<B>");
 	
 	RS[2].state = 'q';
 	RS[2].stacktop[0] = 'S'; RS[2].stacktop[1] = '\0';
 	RS[2].input = 'b'; 
 	RS[2].newstate = 'q';
 	RS[2].newstacktop[0] = 'B', RS[2].newstacktop[1] = 'A', RS[2].newstacktop[2] = '\0';
-
+	strcpy(RS[2].label[0],"b");
+	strcpy(RS[2].label[1],"<B>");
+	strcpy(RS[2].label[2],"<A>");
+	
 	RS[3].state = 'q';
 	RS[3].stacktop[0] = 'A'; RS[3].stacktop[1] = '\0';
 	RS[3].input = 'b';
 	RS[3].newstate = 'q';
 	RS[3].newstacktop[0] = 'S', RS[3].newstacktop[1] = '\0';
-
+	strcpy(RS[3].label[0],"b");
+	strcpy(RS[3].label[1],"<S>");
+	
 	RS[4].state = 'q';
 	RS[4].stacktop[0] = 'A'; RS[4].stacktop[1] = '\0';
 	RS[4].input = 'a';
 	RS[4].newstate = 'q';
 	RS[4].newstacktop[0] = '\0';
+	strcpy(RS[4].label[0],"a");
 	
 	RS[5].state = 'q';
 	RS[5].stacktop[0] = 'B'; RS[5].stacktop[1] = '\0';
 	RS[5].input = 'a';
 	RS[5].newstate = 'q';
 	RS[5].newstacktop[0] = 'S', RS[3].newstacktop[1] = '\0';
-
+	strcpy(RS[5].label[0],"a");
+	strcpy(RS[5].label[1],"<S>");
+	
 	RS[6].state = 'q';
 	RS[6].stacktop[0] = 'B'; RS[6].stacktop[1] = '\0';
 	RS[6].input = 'b';
 	RS[6].newstate = 'q';
 	RS[6].newstacktop[0] = '\0';
+	strcpy(RS[6].label[0],"b");
 }
 
 int main(int argc, char *argv[])
@@ -162,6 +217,8 @@ int main(int argc, char *argv[])
 		input[0] = '\0';
 	else
 		strcpy(input, argv[1]);
+	FILE* fp = fopen("notes.txt","w");
+	fclose(fp);
 	
 	// Define rules
 	ruleset ruletable;
@@ -178,9 +235,11 @@ int main(int argc, char *argv[])
 	printf("%-20d (%c,%c,%s)->(%c,%s)\n",n,
 	ruletable[n].state, ruletable[n].input, ruletable[n].stacktop, ruletable[n].newstate,
 	strcmp(ruletable[n].newstacktop,"")==0?"e":ruletable[n].newstacktop);
+	sleep(1);
 	
 	for(i=0; i<l; i++)
 	{
+		sleep(1);
 		printf("%-10s %-10c %-20s %-15s ","",p.currentstate,input+i,revstring(topStack(stacktop+1)));
 		revstring(topStack(stacktop+1));
 		n = processInput(ruletable, &p, input[i]);
