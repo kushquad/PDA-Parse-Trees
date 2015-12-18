@@ -1,0 +1,1 @@
+<S> 0 for 0 <open> 2 ( 2 <init> 4 i 4 <eq> 6 = 6 <num> 8 digit 0 ; 0 <crest> 11 i 11 <cond> 13 < 13 <num> 14 digit 15 digit 0 ; 0 <upd> 0 <close> 19 i 19 <oper> 22 - 22 <minus> 24 - 20 ) 
